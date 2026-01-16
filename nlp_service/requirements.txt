@@ -1,0 +1,12 @@
+kafka-python
+requests
+pandas
+numpy
+scikit-learn
+joblib
+python-dotenv
+# Heavy ML libraries (Keep these if you are using FinBERT, otherwise remove to speed up build)
+torch --index-url https://download.pytorch.org/whl/cpu
+transformers
+sqlalchemy
+psycopg2-binary

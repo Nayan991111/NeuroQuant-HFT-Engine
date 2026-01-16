@@ -1,0 +1,1 @@
+export const JWT_SECRET = "SUPER_SECRET_FIXED_KEY_12345";

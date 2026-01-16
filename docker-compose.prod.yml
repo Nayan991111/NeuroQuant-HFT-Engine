@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper_prod
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: always
+    networks:
+      - trading-net-prod
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka_prod
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # FIXED: Changed 'kafka' to 'kafka_prod' to match container name
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_prod:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    restart: always
+    networks:
+      - trading-net-prod
+
+  sentiment_db:
+    image: postgres:15
+    container_name: sentiment_db_prod
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_DB: sentiment_db
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - trading-net-prod
+
+  trading_backend:
+    build: ./backend
+    # FIXED: Lowercase image name
+    image: neuroquant-backend:prod
+    container_name: trading_backend_prod
+    ports:
+      - "3001:3001"
+    environment:
+      # FIXED: Pointing to specific container name
+      - DB_HOST=sentiment_db_prod
+      - DB_PORT=5432
+      - DB_USERNAME=admin
+      - DB_PASSWORD=adminpassword
+      - DB_NAME=sentiment_db
+      - PORT=3001
+    depends_on:
+      - sentiment_db
+    restart: always
+    networks:
+      - trading-net-prod
+
+  trading_frontend:
+    build: ./frontend
+    # FIXED: Lowercase image name
+    image: neuroquant-frontend:prod
+    container_name: trading_frontend_prod
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001/api
+    depends_on:
+      - trading_backend
+    restart: always
+    networks:
+      - trading-net-prod
+
+  trading_ai:
+    build: ./nlp_service
+    # FIXED: Lowercase image name
+    image: neuroquant-ai:prod
+    container_name: trading_ai_prod
+    depends_on:
+      - kafka
+      - trading_backend
+    environment:
+      - KAFKA_BROKER=kafka_prod:29092
+      - BACKEND_URL=http://trading_backend_prod:3001/api
+      - PYTHONUNBUFFERED=1
+    restart: always
+    networks:
+      - trading-net-prod
+
+networks:
+  trading-net-prod:
+    driver: bridge
+
+volumes:
+  postgres_data_prod:

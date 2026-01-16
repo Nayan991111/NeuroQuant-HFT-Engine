@@ -1,0 +1,27 @@
+# --- Python & System ---
+__pycache__/
+*.py[cod]
+venv/
+.DS_Store
+*.log
+
+# --- Node/Frontend ---
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+
+# --- Environment & Secrets ---
+.env
+.env.production
+.env.local
+
+# --- Docker & Database Volumes (CRITICAL) ---
+postgres_data/
+postgres_data_prod/
+
+# --- NeuroQuant Specific Artifacts ---
+sentiment_model.pkl
+training_data_debug.csv
+*.csv
